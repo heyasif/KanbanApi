@@ -1,10 +1,12 @@
 const express = require('express')
 const ConnectDatabase = require('./config/db')
+const { UserRouter } = require('./Router/User.Router')
 
 require('dotenv').config()
 
 const app = express()
 app.use(express.json())
+app.use('/user', UserRouter)
 
 app.use('/', (req, res) => {
   res.status(200).json({ Messages: 'Homepage' })
