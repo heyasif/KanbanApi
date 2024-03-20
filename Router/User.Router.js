@@ -1,31 +1,36 @@
 const express = require('express')
+const bcrypt = require('bcrypt')
 const { UserModel } = require('../Model/User.Model')
 
 const UserRouter = express.Router()
 
-UserRouter.post('/login', async (req, res) => {
-  res.status(200).json({ Messages: 'Login Page' })
-})
-
 UserRouter.post('/register', async (req, res) => {
-  const { username, password, role } = req.body
+  const { username, password, role = 'user' } = req.body // Default role to 'user'
+
+  if (!username || !password) {
+    return res.status(400).json({ message: 'Username and password are required.' })
+  }
 
   try {
-    const User = await UserModel.findOne({ username })
-    if (!User) {
-      const newUser = new UserModel({
-        username,
-        password,
-        role
-      })
-
-      await newUser.save()
-      res.status(200).json({ Messages: 'Account Created Sucessfully' })
-    } else {
-      res.status(200).json({ Messages: 'User Already Exits' })
+    const existingUser = await UserModel.findOne({ username })
+    if (existingUser) {
+      return res.status(409).json({ message: 'User already exists.' })
     }
+
+    const hashedPassword = await bcrypt.hash(password, 5) // 10 is the salt rounds
+
+    const newUser = new UserModel({
+      username,
+      password: hashedPassword,
+      role
+    })
+
+    await newUser.save()
+    res.status(201).json({ message: 'Account created successfully.' })
   } catch (error) {
-    res.status(400).json({ error })
+    console.error(error)
+    res.status(500).json({ message: 'Server error while creating user.' })
   }
 })
+
 module.exports = { UserRouter }
