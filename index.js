@@ -11,10 +11,6 @@ app.use(cors())
 app.use(express.json())
 app.use('/user', UserRouter)
 
-app.use('/', (req, res) => {
-  res.status(200).json({ Messages: 'Homepage' })
-})
-
 app.listen(process.env.PORT, () => {
   ConnectDatabase()
   console.log(`Server Running on port ${process.env.PORT}`)
