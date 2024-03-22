@@ -1,6 +1,7 @@
 const express = require('express')
 const bcrypt = require('bcrypt')
 const { UserModel } = require('../Model/User.Model')
+const jwt = require('jsonwebtoken')
 
 const UserRouter = express.Router()
 
@@ -33,15 +34,17 @@ UserRouter.post('/register', async (req, res) => {
   }
 })
 
-UserRouter.get('/login', async (req, res) => {
+UserRouter.post('/login', async (req, res) => {
   const { username, password } = req.body
 
   try {
     const existingUser = await UserModel.findOne({ username })
     if (existingUser) {
       const hashedpass = await bcrypt.compare(password, existingUser.password)
+      console.log(password, existingUser.password)
       if (hashedpass) {
-        res.status(200).json({ message: 'Login Sucessfull' })
+        const token = jwt.sign({ userID: existingUser._id }, process.env.JWT_KEY)
+        res.status(200).json({ message: 'Login Sucessfull', token })
       } else {
         res.status(200).json({ message: 'Wrong Password' })
       }
