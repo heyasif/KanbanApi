@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+    cb(null, uniqueSuffix + path.extname(file.originalname))
   }
 })
 
@@ -35,7 +35,7 @@ const upload = multer({ storage, fileFilter })
 CategoryRouter.post('/', upload.single('image'), Access, async (req, res) => {
   // Destructure the necessary fields from req.body and req.file
   const { name, slug } = req.body
-  const image = req.file.path
+  const image = req.file.filename // Only store the filename
   const owner = req.id // Assuming Access middleware adds user to req.user
 
   // Validate the inputs
@@ -50,11 +50,11 @@ CategoryRouter.post('/', upload.single('image'), Access, async (req, res) => {
       return res.status(409).json({ message: 'Category with this slug already exists' })
     }
 
-    // Create and save the new category
+    // Create and save the new category with the relative image path
     const newCategory = new CategoryModel({
       name,
       slug,
-      image,
+      image: `/uploads/categories/${image}`, // Storing relative path
       owner
     })
 
@@ -109,8 +109,8 @@ CategoryRouter.patch('/:id', upload.single('image'), Access, async (req, res) =>
         if (err) console.log('Failed to delete old image:', oldImagePath)
       })
 
-      // Update with new image path
-      category.image = req.file.path
+      // Update with new image filename
+      category.image = `/uploads/categories/${req.file.filename}` // Storing relative path
     }
 
     // Update name and slug if provided

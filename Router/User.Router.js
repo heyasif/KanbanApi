@@ -10,7 +10,7 @@ const UserRouter = express.Router()
 // Configure multer for file storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './uploads/') // Use a relative path from the project directory
+    cb(null, path.join(__dirname, '../uploads/users')) // Adjust the uploads path as needed
   },
   filename: function (req, file, cb) {
     // Replace colons and ensure the filename is safe for the filesystem
@@ -32,7 +32,7 @@ const upload = multer({ storage, fileFilter })
 
 UserRouter.post('/register', upload.single('avatar'), async (req, res) => {
   const { fullName, userName, email, password } = req.body
-  const avatar = req.file ? req.file.path : null // Handling if no file is uploaded
+  const avatar = req.file.filename // Only store the filename
 
   if (!fullName || !userName || !email || !password) {
     return res.status(400).json({ message: 'All fields must be filled out.' })
@@ -51,7 +51,7 @@ UserRouter.post('/register', upload.single('avatar'), async (req, res) => {
       userName,
       email,
       password: hashedPassword,
-      avatar
+      avatar: `/uploads/users/${avatar}`
     })
 
     await newUser.save()
@@ -107,7 +107,7 @@ UserRouter.post('/login', async (req, res) => {
   }
 })
 
-UserRouter.patch('/profile', upload.single('avatar'), Access, async (req, res) => {
+UserRouter.patch('/profile', upload.single('avatar'), async (req, res) => {
   const { fullName, oldPassword, newPassword } = req.body
   const userId = req.id // Retrieved from the Access middleware
   const avatar = req.file ? req.file.path : null // Handling if a new file is uploaded
@@ -145,6 +145,21 @@ UserRouter.patch('/profile', upload.single('avatar'), Access, async (req, res) =
   } catch (error) {
     console.error('Update profile error:', error)
     res.status(500).json({ message: 'Server error while updating profile.' })
+  }
+})
+
+UserRouter.get('/:id', async (req, res) => {
+  const userId = req.params.id
+  try {
+    const user = await UserModel.findById(userId)
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' })
+    }
+    const { _id, fullName, userName, email, avatar } = user
+    res.json({ _id, fullName, userName, email, avatar })
+  } catch (error) {
+    console.error('Error fetching user details:', error)
+    res.status(500).json({ message: 'Server error while fetching user details.' })
   }
 })
 

@@ -2,7 +2,7 @@ const express = require('express')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
-const { ProductModel } = require('../Model/Product.model') // Adjust path as necessary
+const ProductModel = require('../Model/Product.model') // Adjust path as necessary
 const Access = require('../Middleware/Auth.Middleware') // Adjust path as necessary
 
 const ProductRouter = express.Router()
@@ -28,18 +28,25 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({ storage, fileFilter })
 
-// POST endpoint to create a new product
 ProductRouter.post('/', upload.single('image'), Access, async (req, res) => {
   const { title, description, price, category } = req.body
-  const image = req.file ? req.file.path : null
-  const owner = req.user._id // Assuming user ID is added to req.user by Access middleware
+  const image = req.file.filename
+  const owner = req.id
 
   if (!title || !price || !category || !image) {
     return res.status(400).json({ message: 'Missing required fields: title, price, category, and image.' })
   }
 
   try {
-    const newProduct = new ProductModel({ title, description, price, category, image, owner })
+    const newProduct = new ProductModel({
+      title,
+      description,
+      price,
+      category,
+      image: `/uploads/products/${image}`,
+
+      owner
+    })
     await newProduct.save()
     res.status(201).json(newProduct)
   } catch (error) {
@@ -48,7 +55,6 @@ ProductRouter.post('/', upload.single('image'), Access, async (req, res) => {
   }
 })
 
-// GET endpoint to fetch all products or search by title, sorted by price, filtered by category
 ProductRouter.get('/', async (req, res) => {
   const { title, sort, category } = req.query
   const query = {}
@@ -58,7 +64,7 @@ ProductRouter.get('/', async (req, res) => {
   try {
     let products = ProductModel.find(query)
     if (sort === 'price') {
-      products = products.sort({ price: 1 }) // Sort by price ascending
+      products = products.sort({ price: 1 })
     }
     const results = await products
     res.json(results)
