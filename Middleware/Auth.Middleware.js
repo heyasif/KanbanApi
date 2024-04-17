@@ -1,23 +1,21 @@
 const jwt = require('jsonwebtoken')
-const { UserModel } = require('../Model/User.Model')
 
 const Access = async (req, res, next) => {
   const authHeader = req.headers.authorization
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1]
+    console.log(token)
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_KEY)
-      const existingUser = await UserModel.findById(decoded.userID)
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      // console.log(decoded)
 
-      if (!existingUser) {
-        return res.status(401).json({ Message: 'User not found' })
+      if (decoded) {
+        req.id = decoded.id
+        // console.log(decoded.userID)
+
+        next()
       }
-
-      req.id = decoded.userID
-      req.role = existingUser.role
-
-      next()
     } catch (error) {
       return res.status(403).json({ error: 'Invalid or expired token' })
     }
